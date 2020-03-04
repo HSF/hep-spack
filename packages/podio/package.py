@@ -30,9 +30,9 @@ class Podio(CMakePackage):
     and handling of data models in particle physics."""
 
     homepage = "https://github.com/AIDASOFT/podio"
-    url      = "https://github.com/AIDASOFT/podio"
+    url      = "https://github.com/AIDASoft/podio/archive/v00-09-02.tar.gz"
 
-    version('00-09-02', sha256='8234d1b9636029124235ef81199a1220968dcc7fdaeab81cdc96a47af332d240', preferred=True)
+    version('00-09-02', sha256='8234d1b9636029124235ef81199a1220968dcc7fdaeab81cdc96a47af332d240',  extension='tar.gz', preferred=True)
     version('00-09', sha256='3cde67556b6b76fd2d004adfaa3b3b6173a110c0c209792bfdb5f9353e21076f')
     version('00-08', sha256='9d035a7f5ebfae5279a17405003206853271af692f762e2bac8e73825f2af327')
     version('develop', git='https://github.com/AIDASOFT/podio.git', branch='master')
@@ -52,11 +52,13 @@ class Podio(CMakePackage):
     depends_on('python@2.7:')
     depends_on('py-pyyaml')
     depends_on('tbb')
+    depends_on('davix', when='@:00-09')
 
     def cmake_args(self):
         args = []
         # C++ Standard
         args.append('-DCMAKE_CXX_STANDARD=%s' % self.spec.variants['cxxstd'].value)
+        args.append('-DBUILD_TESTING=OFF')
         return args
 
     # in LCG_96 ROOT is installed with an external xz rather than the builtin,
@@ -66,11 +68,19 @@ class Podio(CMakePackage):
     # LD_LIBRARY_PATH hence we need to do it here.
     depends_on('xz', when='^root@6.16:')
 
+    def setup_environment(self, spack_env, run_env):
+        if 'xz' in self.spec:
+            spack_env.prepend_path('LD_LIBRARY_PATH', self.spec['xz'].prefix.lib)
+
     def setup_dependent_environment(self, spack_env, run_env, dspec):
         spack_env.set('PODIO', self.prefix)
 
-    def setup_environment(self, spack_env, run_env):
-      spack_env.prepend_path('LD_LIBRARY_PATH', self.spec['root'].prefix.lib)
+    def setup_build_environment(self, build_env):
+      build_env.prepend_path('LD_LIBRARY_PATH', self.spec['root'].prefix.lib)
+      if 'xz' in self.spec:
+         build_env.prepend_path('LD_LIBRARY_PATH', self.spec['xz'].prefix.lib)
+
+    def setup_run_environment(self, run_env):
       run_env.prepend_path('LD_LIBRARY_PATH', self.spec['root'].prefix.lib)
       if 'xz' in self.spec:
-        spack_env.prepend_path('LD_LIBRARY_PATH', self.spec['xz'].prefix.lib)
+         spack_env.prepend_path('LD_LIBRARY_PATH', self.spec['xz'].prefix.lib)
